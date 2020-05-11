@@ -1,0 +1,97 @@
+STATIC PARTITIONING:
+
+1. Create Table:
+
+                         CREATE EXTERNAL TABLE sp_ratings ( 
+                                           userid INT, 
+                                           movieid INT, 
+                                           tstamp BIGINT 
+                          ) PARTITIONED BY (rating INT)
+                            ROW FORMAT DELIMITED 
+                            FIELDS TERMINATED BY '#'
+                            STORED AS TEXTFILE; 
+
+2. Load partitioned data:
+            
+           LOAD DATA INPATH '/hive/data/rating' INTO TABLE sp_ratings PARTITION (rating=1)
+
+3. Verify data load:
+          
+        SELECT * from sp_ratings where rating = 1;
+
+Did you notice, It prints all data i.e. data with rating 2,3,4,5, as well. 
+
+is partitioning not working ? think over and put in comment.
+
+4. Verify file location:
+
+               hadoop fs -ls /user/hive/warehouse/movielens.db/sp_ratings/
+
+It should have folder named rating=1.
+
+2.  CREATE TABLE table_tab1 (id INT, name STRING, dept STRING, yoj INT) PARTITIONED BY (year STRING);
+    LOAD DATA LOCAL INPATH tab1’/clientdata/2009/file2’OVERWRITE INTO TABLE studentTab PARTITION (year='2009');
+    LOAD DATA LOCAL INPATH tab1’/clientdata/2010/file3’OVERWRITE INTO TABLE studentTab PARTITION (year='2010');
+
+DINAMIC PARTITION
+
+1. Create Table:
+
+                         CREATE EXTERNAL TABLE dp_ratings ( 
+                                           userid INT, 
+                                           movieid INT, 
+                                           tstamp BIGINT 
+                          ) PARTITIONED BY (rating INT)
+                            ROW FORMAT DELIMITED 
+                            FIELDS TERMINATED BY '#'
+                            STORED AS TEXTFILE; 
+
+2. Create TEMP table:
+              
+                        CREATE EXTERNAL TABLE temp_ratings ( 
+                                           userid INT, asa
+                                           movieid INT,
+                                           rating INT, 
+                                           tstamp BIGINT 
+                          ) 
+                            ROW FORMAT DELIMITED 
+                            FIELDS TERMINATED BY '#'
+                            STORED AS TEXTFILE; 
+
+
+3. Load data in temp table from file:
+            
+           LOAD DATA LOCAL INPATH '/home/sushil/bigadata/hivedata/ratings' INTO TABLE temp_ratings;
+
+4. Load data in dynamic partitioned table:
+            
+INSERT INTO TABLE dp_ratings PARTITION (rating) SELECT userid, movieid, tstamp,rating FROM temp_ratings;
+
+5. Verify data load:
+          
+        SELECT * from sp_ratings where rating = 1;
+        SELECT * from sp_ratings where rating = 2;
+        SELECT * from sp_ratings where rating = 3;
+        SELECT * from sp_ratings where rating = 4;
+
+6. Verify file location:
+
+               hadoop fs -ls /user/hive/warehouse/movielens.db/dp_ratings/
+
+It should have folder named rating=1, rating=2 etc...
+
+To enable full dynamic partitioning, we have to set below property to nonstrict in hive.
+       
+hive> set hive.exec.dynamic.partition.mode=nonstrcit
+
+So if you are running in pseudo distributed mode with single node and you partitioned column cardinality is more than 100, 
+than set the below hive property as well.   
+      
+hive> set hive.exec.max.dynamic.partitions.pernode=1000
+https://github.com/malli3131/HadoopTutorial/blob/master/Partitioning%20in%20HIVE%20(static%2C%20dynamic)
+
+7.  Loading data into Hive Table 
+http://www.hadooplessons.info/2014/12/loading-data-into-hive-table.html
+https://www.quora.com/How-do-I-insert-data-into-Hive-tables
+LOAD DATA INPATH 'hdfs_file_or_directory_path' [OVERWRITE] or [APPEND] INTO TABLE tablename
+  [PARTITION (partcol1=val1, partcol2=val2 https://www.cloudera.com/documentation/enterprise/5-2-x/topics/impala_load_data.html
